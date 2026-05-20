@@ -1,0 +1,91 @@
+DESCRIPTION = "ADI Linux kernel with GMSL support for Raspberry Pi 4"
+LICENSE = "CLOSED"
+
+inherit kernel
+
+DEPENDS += "linux-firmware"
+RDEPENDS:${PN} += "linux-firmware"
+
+SRC_URI = "git://github.com/analogdevicesinc/linux.git;branch=gmsl/rpi-6.1.y;protocol=https"
+SRCREV = "${AUTOREV}"
+
+PV = "6.1+adi-gmsl"
+S = "${WORKDIR}/git"
+
+KCONFIG_MODE = "alldefconfig"
+KBUILD_DEFCONFIG = "adi_gmsl_defconfig"
+
+# -------------------------------------------------------------------
+# Configure: Use ADI defconfig
+# -------------------------------------------------------------------
+do_configure:prepend() {
+    cp ${S}/arch/arm64/configs/${KBUILD_DEFCONFIG} ${B}/.config
+}
+
+# -------------------------------------------------------------------
+# Compile: Build kernel Image and DTBs
+# -------------------------------------------------------------------
+do_compile:append() {
+    oe_runmake ARCH=arm64 -C ${S} O=${B} dtbs dtbo
+}
+
+# -------------------------------------------------------------------
+# Install: Kernel Image, DTBs, and overlays (if present)
+# -------------------------------------------------------------------
+do_install:append() {
+    install -d ${D}/boot
+    install -d ${D}/boot/overlays
+
+    # Kernel Image
+    install -m 0644 ${B}/arch/arm64/boot/Image ${D}/boot/ || true
+
+    # Main DTBs
+    if [ -d ${B}/arch/arm64/boot/dts/broadcom ]; then
+        install -m 0644 ${B}/arch/arm64/boot/dts/broadcom/*.dtb ${D}/boot/ || true
+    fi
+
+    # Install overlays if they exist
+    if [ -d ${B}/arch/arm64/boot/dts/overlays ] && [ "$(ls -A ${B}/arch/arm64/boot/dts/overlays/*.dtbo 2>/dev/null)" ]; then
+        install -m 0644 ${B}/arch/arm64/boot/dts/overlays/*.dtbo ${D}/boot/overlays/
+    else
+        echo "No overlay files found — skipping overlay install."
+    fi
+}
+
+# -------------------------------------------------------------------
+# Deploy: Copy kernel, DTBs, and overlays to deploy directory
+# -------------------------------------------------------------------
+do_deploy:append() {
+    install -d ${DEPLOYDIR}/boot
+    install -d ${DEPLOYDIR}/boot/overlays
+
+    # Kernel Image
+    if [ -f ${B}/arch/arm64/boot/Image ]; then
+        cp -v ${B}/arch/arm64/boot/Image ${DEPLOYDIR}/boot/
+    else
+        echo "Warning: Kernel Image not found."
+    fi
+
+    # DTBs
+    if [ -d ${B}/arch/arm64/boot/dts/broadcom ]; then
+        cp -v ${B}/arch/arm64/boot/dts/broadcom/*.dtb ${DEPLOYDIR}/boot/ || true
+    fi
+
+    # Overlays
+    if [ -d ${B}/arch/arm64/boot/dts/overlays ] && [ "$(ls -A ${B}/arch/arm64/boot/dts/overlays/*.dtbo 2>/dev/null)" ]; then
+        cp -v ${B}/arch/arm64/boot/dts/overlays/*.dtbo ${DEPLOYDIR}/boot/overlays/ || true
+    else
+        echo "No overlays found to deploy."
+    fi
+}
+
+# -------------------------------------------------------------------
+# Packaging: Ensure boot files are included
+# -------------------------------------------------------------------
+FILES:${KERNEL_PACKAGE_NAME}-base += " \
+    /boot/Image \
+    /boot/*.dtb \
+    /boot/overlays \
+    /boot/overlays/*.dtbo \
+"
+

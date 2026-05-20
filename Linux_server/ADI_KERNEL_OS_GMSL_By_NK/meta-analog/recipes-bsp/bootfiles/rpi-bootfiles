@@ -1,0 +1,25 @@
+FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
+
+# -------------------------------------------------------------------
+# Deploy
+# -------------------------------------------------------------------
+
+do_deploy:append() {
+    # Create bootfiles and overlays directories
+    install -d ${DEPLOYDIR}/${BOOTFILES_DIR_NAME}/
+    install -d ${DEPLOYDIR}/${BOOTFILES_DIR_NAME}/overlays
+
+    # Copy Overlays into overlays folder
+    if [ -d ${B}/arch/arm64/boot/dts/overlays ]; then
+        cp -v ${B}/arch/arm64/boot/dts/overlays/*.dtbo ${DEPLOYDIR}/${BOOTFILES_DIR_NAME}/overlays/
+    fi
+
+}
+
+
+
+#do_deploy:append() {
+    # Create bootfiles and overlays directories
+#    install -d ${DEPLOYDIR}/bootfiles
+#    install -d ${DEPLOYDIR}/bootfiles/overlays                                                                                                                                                                                                                                                                                                                                                                                        # Copy Overlays into overlays folder                                                                                                                                                                             if [ -d ${B}/arch/arm64/boot/dts/overlays ]; then                                                                                                                                                                    cp -v ${B}/arch/arm64/boot/dts/overlays/*.dtbo ${DEPLOYDIR}/bootfiles/overlays/                                                                                                                              fi                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             }   
+

@@ -1,0 +1,40 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+    fragment@0 {
+        target = <&mipi_dsi>;
+        __overlay__ {
+            status = "okay";
+
+            port@1 {
+                dsi_out: endpoint {
+                    remote-endpoint = <&hdmi_in>;
+                    attach-bridge;
+                    status = "okay";
+                };
+            };
+        };
+    };
+
+    fragment@1 {
+        target = <&adv7535>;
+        __overlay__ {
+            status = "okay";
+
+            ports {
+                #address-cells = <1>;
+                #size-cells = <0>;
+
+                port@0 {
+                    reg = <0>;
+                    hdmi_in: endpoint {
+                        remote-endpoint = <&dsi_out>;
+                        status = "okay";
+                    };
+                };
+            };
+        };
+    };
+};
+

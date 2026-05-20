@@ -1,0 +1,24 @@
+FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
+
+do_deploy:append() {
+    CONFIG_FILE=${DEPLOYDIR}/bootfiles/config.txt
+    OVERLAY_FILE=${WORKDIR}/my-overlays.txt
+
+    # Create overlay lines file dynamically or copy from files/
+    # Here, we generate it based on your kernel overlays:
+
+    # Clear overlay file
+    echo -n > $OVERLAY_FILE
+
+    for dtbo in ${B}/arch/arm64/boot/dts/overlays/*.dtbo; do
+        overlay=$(basename $dtbo .dtbo)
+        echo "dtoverlay=${overlay}" >> $OVERLAY_FILE
+    done
+
+    if [ -f "$CONFIG_FILE" ] && [ -s "$OVERLAY_FILE" ]; then
+        echo "Appending overlays to existing config.txt"
+        # Append overlays avoiding duplicates
+        grep -vxFf "$CONFIG_FILE" "$OVERLAY_FILE" >> "$CONFIG_FILE"
+    fi
+}
+

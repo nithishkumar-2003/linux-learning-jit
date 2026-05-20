@@ -1,0 +1,6 @@
+--- a/arch/arm64/boot/dts/freescale/imx8mm-evk.dtsi
++++ b/arch/arm64/boot/dts/freescale/imx8mm-evk.dtsi
+@@
+ #include "imx8mm.dtsi"
++#include "imx8mm-adv7533.dtsi"
+
