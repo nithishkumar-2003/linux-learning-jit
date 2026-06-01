@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Selector Project</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h2>Microservices Selector</h2>
+  
+  <label>Source:</label>
+  <select id="source"></select>
+
+  <label>Interface:</label>
+  <select id="interface"></select>
+
+  <label>Resolution:</label>
+  <select id="resolution"></select>
+
+  <label>Serializer:</label>
+  <select id="serializer"></select>
+
+  <label>Deserializer:</label>
+  <select id="deserializer"></select>
+
+  <label>Sink:</label>
+  <input id="sink" readonly>
+
+  <script>
+    const API = "http://127.0.0.1:8080";
+
+    async function fetchOptions(url) {
+      const res = await fetch(url);
+      return res.json();
+    }
+
+    async function loadSources() {
+      let sources = await fetchOptions(`${API}/sources`);
+      let srcSel = document.getElementById("source");
+      srcSel.innerHTML = sources.map(s => `<option value="${s}">${s}</option>`).join("");
+      srcSel.dispatchEvent(new Event("change"));
+    }
+
+    document.getElementById("source").addEventListener("change", async function() {
+      let source = this.value;
+      document.getElementById("interface").innerHTML =
+        (await fetchOptions(`${API}/interfaces/${source}`))
+        .map(i => `<option>${i}</option>`).join("");
+
+      document.getElementById("resolution").innerHTML =
+        (await fetchOptions(`${API}/resolutions/${source}`))
+        .map(r => `<option>${r}</option>`).join("");
+
+      let serializers = await fetchOptions(`${API}/serializers/${source}`);
+      document.getElementById("serializer").innerHTML =
+        serializers.map(s => `<option value="${s}">${s}</option>`).join("");
+      document.getElementById("serializer").dispatchEvent(new Event("change"));
+
+      document.getElementById("sink").value =
+        await fetchOptions(`${API}/sink/${source}`);
+    });
+
+    document.getElementById("serializer").addEventListener("change", async function() {
+      let source = document.getElementById("source").value;
+      let serializer = this.value;
+      let deserializers = await fetchOptions(`${API}/deserializers/${source}/${serializer}`);
+      document.getElementById("deserializer").innerHTML =
+        deserializers.map(d => `<option>${d}</option>`).join("");
+    });
+
+    loadSources();
+  </script>
+</body>
+</html>

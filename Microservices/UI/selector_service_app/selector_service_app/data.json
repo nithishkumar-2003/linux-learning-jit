@@ -1,0 +1,23 @@
+{
+  "sources": {
+    "camera": {
+      "interface": ["MIPI", "HDMI"],
+      "resolution": ["1080"],
+      "serializers": {
+        "MAX96717": ["MAX96724", "MAX96714"],
+        "MAX96717F": ["MAX96724", "MAX96714"],
+        "MAX96717R": ["MAX96724", "MAX96714"],
+        "MAX9295D": ["MAX96724", "MAX96714"]
+      },
+      "sink": "SoC"
+    },
+    "soc": {
+      "interface": ["MIPI", "HDMI"],
+      "resolution": ["1080"],
+      "serializers": {
+        "MAX96751": ["MAX96752"]
+      },
+      "sink": "Display"
+    }
+  }
+}

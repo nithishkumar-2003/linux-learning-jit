@@ -1,0 +1,7 @@
+1. What is Monolithic and Microservices Architecture?
+2. Why microservices over monolithic architecture?
+3. Step to develop Microservice application with its corresponding tools -- with Network
+4. Microservices without a Network?
+5. Local Development: Modular Monolithic & Microservices
+6. Comparison Table: Architectures (Monolithic, Modular Monolith, Microservices, Offline Microservices (Localhost))
+7. 

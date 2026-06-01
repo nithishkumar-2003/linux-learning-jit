@@ -1,0 +1,14 @@
+
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+}
+label {
+  display: block;
+  color: rgb(5, 22, 37);
+  margin-top: 10px;
+}
+select, input {
+  width: 200px;
+  padding: 5px;
+}
