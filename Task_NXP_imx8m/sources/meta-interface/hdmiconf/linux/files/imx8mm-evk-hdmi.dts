@@ -1,0 +1,110 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Device Tree for i.MX8MM EVK + ADV7535 HDMI Bridge
+ */
+
+#include "imx8mm-evk.dtsi"
+#include "hdmi-fragment.dtsi"
+#include <dt-bindings/usb/pd.h>
+
+/ {
+    model = "FSL i.MX8MM EVK with ADV7535 HDMI";
+    compatible = "fsl,imx8mm-evk", "fsl,imx8mm";
+
+    aliases {
+        spi0 = &flexspi;
+    };
+
+    usdhc1_pwrseq: usdhc1_pwrseq {
+        compatible = "mmc-pwrseq-simple";
+        pinctrl-names = "default";
+        pinctrl-0 = <&pinctrl_usdhc1_gpio>;
+        reset-gpios = <&gpio2 10 GPIO_ACTIVE_LOW>;
+    };
+};
+
+&flexspi {
+    pinctrl-names = "default";
+    pinctrl-0 = <&pinctrl_flexspi>;
+    status = "okay";
+
+    flash@0 {
+        reg = <0>;
+        #address-cells = <1>;
+        #size-cells = <1>;
+        compatible = "jedec,spi-nor";
+        spi-max-frequency = <80000000>;
+        spi-tx-bus-width = <1>;
+        spi-rx-bus-width = <4>;
+    };
+};
+
+&usdhc1 {
+    pinctrl-names = "default", "state_100mhz", "state_200mhz";
+    pinctrl-0 = <&pinctrl_usdhc1>, <&pinctrl_wlan>;
+    pinctrl-1 = <&pinctrl_usdhc1_100mhz>, <&pinctrl_wlan>;
+    pinctrl-2 = <&pinctrl_usdhc1_200mhz>, <&pinctrl_wlan>;
+    bus-width = <4>;
+    keep-power-in-suspend;
+    non-removable;
+    wakeup-source;
+    mmc-pwrseq = <&usdhc1_pwrseq>;
+    fsl,sdio-async-interrupt-enabled;
+    status = "okay";
+
+    wifi_wake_host {
+        compatible = "nxp,wifi-wake-host";
+        interrupt-parent = <&gpio2>;
+        interrupts = <9 IRQ_TYPE_LEVEL_LOW>;
+        interrupt-names = "host-wake";
+    };
+};
+
+&usdhc3 {
+    assigned-clocks = <&clk IMX8MM_CLK_USDHC3_ROOT>;
+    assigned-clock-rates = <400000000>;
+    pinctrl-names = "default", "state_100mhz", "state_200mhz";
+    pinctrl-0 = <&pinctrl_usdhc3>;
+    pinctrl-1 = <&pinctrl_usdhc3_100mhz>;
+    pinctrl-2 = <&pinctrl_usdhc3_200mhz>;
+    bus-width = <8>;
+    non-removable;
+    status = "okay";
+};
+
+&mipi_dsi {
+    status = "okay";
+
+    port@1 {
+        reg = <1>;
+
+        dsi_out: endpoint {
+            remote-endpoint = <&adv7535_in>;
+            data-lanes = <0 1 2 3>;
+        };
+    };
+};
+
+&i2c2 {
+    clock-frequency = <400000>;
+    pinctrl-names = "default";
+    pinctrl-0 = <&pinctrl_i2c2>;
+    status = "okay";
+
+    adv_bridge: adv7535@3d {
+        compatible = "adi,adv7535";
+        reg = <0x3d>;
+        adi,addr-cec = <0x3b>;
+        adi,dsi-lanes = <4>;
+
+        status = "okay";
+
+        port {
+            adv7535_in: endpoint {
+                remote-endpoint = <&dsi_out>;
+                data-lanes = <0 1 2 3>;
+            };
+        };
+    };
+};
+

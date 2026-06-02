@@ -1,0 +1,42 @@
+#LICENSE = "GPL-2.0-only"
+#LIC_FILES_CHKSUM = "file://COPYING;md5=751419260aa954499f7abaabaa882bbe"
+
+#FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
+#SRC_URI += "file://hdmi.config"
+
+#KCONFIG_DEFCONFIG = "${WORKDIR}/defconfig"
+
+#KERNEL_CONFIG_FRAGMENTS += "file://hdmi.config"
+
+
+
+
+
+
+LICENSE = "GPL-2.0-only"
+
+# Correct override syntax with underscore and := operator
+FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
+
+# Add your DTS overlay source file here (named hdmi.config as you used)
+SRC_URI += "file://hdmi.config"
+
+# If hdmi.config is a kernel config fragment (adjust if needed)
+KCONFIG_DEFCONFIG = "${WORKDIR}/defconfig"
+KERNEL_CONFIG_FRAGMENTS += "file://hdmi.config"
+
+# Compile the DTS overlay into .dtbo file during do_compile task
+do_compile_append += " dtc -@ -I dts -O dtb -o ${WORKDIR}/hdmi.dtbo ${WORKDIR}/hdmi.config; "
+
+# Install the compiled overlay into firmware dtbo directory during do_install
+do_install_append += " install -d ${D}${nonarch_base_libdir}/firmware/dtbo; install -m 0644 ${WORKDIR}/hdmi.dtbo ${D}${nonarch_base_libdir}/firmware/dtbo/; "
+
+# Make sure the overlay gets packaged with the kernel package
+FILES_${PN} += "${nonarch_base_libdir}/firmware/dtbo/hdmi.dtbo"
+
+
+
+
+
+
+

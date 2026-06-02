@@ -1,0 +1,88 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include "ArduCAM.h"
+#include "sccb_bus.h"
+#include <unistd.h>
+#include <string.h>
+#include <pthread.h>
+#include <signal.h>
+#include <fcntl.h>
+ 
+void *readDataThread(void *arg);
+void INThandler(int sig);
+ 
+// Socket-related vars (now unused, but not removed per your request)
+int sockfd, newsockfd, portno, clilen;
+unsigned char start_read_data = 0;
+unsigned char read_data_OK = 0;
+unsigned int length_cam1;
+ 
+// External read buffer (used for camera image capture)
+extern char readbuf[JPEG_BUF_SIZE];
+ 
+int main(int argc, char *argv[])
+{
+  pthread_t _readData;
+ 
+  pioInit();
+  ArduCAM_CS_init(CAM_CS1, -1, -1, -1);   // Init CS pin
+  sccb_bus_init();
+  spiInit(4000000, 0); // 8MHz
+  Arducam_bus_detect(CAM_CS1, -1, -1, -1);
+  resetFirmware(CAM_CS1, -1, -1, -1);
+  ArduCAM_Init(sensor_model);
+ 
+  signal(SIGINT, INThandler);
+ 
+  start_read_data = 1;  // Begin capturing
+ 
+  pthread_create(&_readData, NULL, readDataThread, NULL);
+ 
+  while (1) {
+    sleep(1);  // Keep main loop running
+  }
+ 
+  return 0;
+}
+ 
+void *readDataThread(void *arg) {
+  int file_index = 0;
+  char filename[64];
+ 
+  while (1) {
+    if (start_read_data == 1) {
+      singleCapture(CAM_CS1);  // Trigger capture
+ 
+      // Save captured image to file
+      snprintf(filename, sizeof(filename), "capture_%03d.jpg", file_index++);
+      FILE *fp = fopen(filename, "wb");
+      if (fp != NULL) {
+        fwrite(readbuf, sizeof(char), length, fp);
+        fclose(fp);
+        printf("Saved image to %s\n", filename);
+      } else {
+        perror("Error saving image");
+      }
+ 
+      sleep(1);  // Adjust capture interval here
+    }
+  }
+  return 0;
+}
+ 
+void INThandler(int sig)
+{
+  char c;
+  signal(sig, SIG_IGN);
+  printf("You hit Ctrl-C\nDo you really want to quit? [y/n] ");
+  c = getchar();
+  if (c == 'y' || c == 'Y') {
+    start_read_data = 0;
+    printf("Bye Arducam.\n");
+    printf("If you want to restart Arducam, just run \"sudo ./run_Arducam_Demo\"\r\n");
+    exit(0);
+  } else {
+    signal(SIGINT, INThandler);
+    getchar(); // Consume newline
+  }
+}

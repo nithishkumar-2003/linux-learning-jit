@@ -1,0 +1,115 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include "ArduCAM.h"
+#include "sccb_bus.h"
+#include <unistd.h>
+#include <string.h>
+#include <fcntl.h>
+#include <termios.h>
+
+extern char readbuf[JPEG_BUF_SIZE];
+unsigned char mode = 0;
+
+int kbhit(void) {
+    struct termios oldt, newt;
+    int ch;
+    int oldf;
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+    ch = getchar();
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    fcntl(STDIN_FILENO, F_SETFL, oldf);
+    if (ch != EOF) {
+        ungetc(ch, stdin);
+        return 1;
+    }
+    return 0;
+}
+
+int main() {
+    char input;
+    FILE *ffmpeg = NULL;
+
+    pioInit();
+    ArduCAM_CS_init(CAM_CS1, -1, -1, -1);
+    sccb_bus_init();
+    spiInit(4000000, 0); // 4 MHz
+    Arducam_bus_detect(CAM_CS1, -1, -1, -1);
+    resetFirmware(CAM_CS1, -1, -1, -1);
+    ArduCAM_Init(sensor_model);
+
+    printf("Select mode: image (i) or video (v): ");
+    input = getchar();
+    getchar(); // consume newline
+
+    if (input == 'i') {
+        mode = 1;
+        printf("Image mode. Press 'c' to capture image.\n");
+    } else if (input == 'v') {
+        mode = 2;
+        printf("Video mode. Press 'c' to start recording, 'e' to end.\n");
+    } else {
+        printf("Invalid option.\n");
+        return 1;
+    }
+
+    if (mode == 1) {
+        int img_idx = 0;
+        char filename[64];
+        while (1) {
+            if (kbhit() && getchar() == 'c') {
+                singleCapture(CAM_CS1);
+                snprintf(filename, sizeof(filename), "image_%03d.jpg", img_idx++);
+                FILE *fp = fopen(filename, "wb");
+                if (fp) {
+                    fwrite(readbuf, 1, length, fp);
+                    fclose(fp);
+                    printf("Saved %s\n", filename);
+                } else {
+                    perror("Failed to save image");
+                }
+            }
+            usleep(100000);
+        }
+    }
+
+    else if (mode == 2) {
+        int recording = 0;
+        while (1) {
+            if (kbhit()) {
+                char ch = getchar();
+                if (ch == 'c' && !recording) {
+                    // Start ffmpeg pipe
+		    ffmpeg = popen("ffmpeg -y -f mjpeg -r 10 -i - -c:v libx264 -pix_fmt yuv420p output.mp4", "w");
+                    //ffmpeg = popen("ffmpeg -y -f mjpeg -i - -c:v libx264 -pix_fmt yuv420p output.mp4", "w"); // old
+                    if (!ffmpeg) {
+                        perror("Failed to start ffmpeg");
+                        return 1;
+                    }
+                    recording = 1;
+                    printf("Recording started...\n");
+                } else if (ch == 'e' && recording) {
+                    pclose(ffmpeg);
+                    ffmpeg = NULL;
+                    recording = 0;
+                    printf("Recording stopped. Saved to output.mp4\n");
+                }
+            }
+
+            if (recording && ffmpeg) {
+                singleCapture(CAM_CS1);
+                fwrite(readbuf, 1, length, ffmpeg);
+                fflush(ffmpeg);  // ensure data is written to pipe
+                usleep(100000); // ~10 FPS
+            } else {
+                usleep(100000);
+            }
+        }
+    }
+
+    return 0;
+}

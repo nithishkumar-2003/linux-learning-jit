@@ -1,0 +1,4 @@
+build
+.vscode
+metadata/excluded_operations.ids
+metadata/sym.txt

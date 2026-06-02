@@ -1,0 +1,39 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+    compatible = "brcm,bcm2835";
+
+    fragment@0 {
+        target = <&spi0>;
+        __overlay__ {
+            status = "okay";
+
+            arducam: spidev@0 {
+                compatible = "spidev";
+                reg = <0>;  // SPI CS0
+                spi-max-frequency = <8000000>;
+                status = "okay";
+            };
+        };
+    };
+
+    fragment@1 {
+        target = <&gpio>;
+        __overlay__ {
+            arducam_pwdn: arducam_pwdn {
+                gpio-hog;
+                gpios = <22 0>;  // GPIO22 for PWDN
+                output-low;
+                line-name = "arducam-pwdn";
+            };
+            arducam_reset: arducam_reset {
+                gpio-hog;
+                gpios = <27 0>;  // GPIO27 for RESET
+                output-high;
+                line-name = "arducam-reset";
+            };
+        };
+    };
+};
+

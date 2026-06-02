@@ -1,0 +1,6 @@
+# Enable UART0 for serial communication
+enable_uart=1
+
+# Set GPU memory to 128MB (recommended for Raspberry Pi 4)
+gpu_mem=128
+

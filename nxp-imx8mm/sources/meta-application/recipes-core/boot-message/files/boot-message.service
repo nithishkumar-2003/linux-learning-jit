@@ -1,0 +1,13 @@
+[Unit]
+Description=Display Boot Message After Boot Completion
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/boot_message
+StandardOutput=tty
+StandardError=tty
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

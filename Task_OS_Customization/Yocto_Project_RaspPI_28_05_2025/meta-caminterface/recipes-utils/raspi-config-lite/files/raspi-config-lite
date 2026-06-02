@@ -1,0 +1,18 @@
+#!/bin/bash
+
+OPTION=$(dialog --clear --backtitle "Yocto Raspberry Pi Config" \
+  --title "Main Menu" \
+  --menu "Choose a setting:" 15 50 4 \
+  1 "Enable SPI" \
+  2 "Enable I2C" \
+  3 "Enable Camera" \
+  4 "Exit" \
+  3>&1 1>&2 2>&3)
+
+case $OPTION in
+  1) echo "dtparam=spi=on" >> /boot/config.txt ;;
+  2) echo "dtparam=i2c_arm=on" >> /boot/config.txt ;;
+  3) echo "start_x=1" >> /boot/config.txt ;;
+  *) ;;
+esac
+

@@ -1,0 +1,7 @@
+# config.txt for Raspberry Pi
+dtparam=i2c_arm=on
+dtparam=spi=on
+enable_uart=1
+gpu_mem=128
+camera_auto_detect=1
+

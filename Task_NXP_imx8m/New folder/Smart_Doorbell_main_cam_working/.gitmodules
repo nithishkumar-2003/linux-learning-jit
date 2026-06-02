@@ -1,0 +1,3 @@
+[submodule "ids-instrumentation"]
+	path = ancyr-instrumentation
+	url = git@github.com:bgnetworks/ids-instrumentation.git

@@ -1,0 +1,16 @@
+FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
+
+SRC_URI += "file://arducam-ov5642.dtbo"
+
+do_install:append() {
+    # Ensure required dirs exist
+    install -d ${D}/boot
+    install -d ${D}/boot/overlays
+
+    # Install the DTBO overlay
+    install -m 0644 ${WORKDIR}/arducam-ov5642.dtbo ${D}/boot/overlays/arducam-ov5642.dtbo
+
+    # Enable the overlay in config.txt
+    echo "dtoverlay=arducam-ov5642" >> ${D}/boot/config.txt
+}
+

@@ -1,0 +1,127 @@
+DESCRIPTION = "ADI Linux kernel with GMSL support for Raspberry Pi 4"
+LICENSE = "CLOSED"
+#LIC_FILES_CHKSUM = "file://COPYING;md5=6bc538ed5bd9a7fc9398086aedcd7e46"
+
+inherit kernel
+
+SRC_URI = "git://github.com/analogdevicesinc/linux.git;branch=gmsl/rpi-6.1.y;protocol=https"
+SRCREV = "${AUTOREV}"
+
+PV = "6.1+adi-gmsl"
+S = "${WORKDIR}/git"
+
+KCONFIG_MODE = "alldefconfig"
+KBUILD_DEFCONFIG = "adi_gmsl_defconfig"
+
+# Device tree overlay handling
+do_configure:prepend() {
+    cp ${S}/arch/arm64/configs/adi_gmsl_defconfig ${B}/.config
+}
+
+
+
+
+do_compile:append() {
+    # Build DT overlays
+    oe_runmake ARCH=arm64 -C ${S} O=${B} dtbs
+}
+
+# Make sure overlays are deployed
+python () {
+    import os
+    overlay_dir = os.path.join(d.getVar('B'), 'arch/arm64/boot/dts/overlays')
+    overlays = [f for f in os.listdir(overlay_dir) if f.endswith('.dtbo')]
+    d.setVar('KERNEL_DEVICETREE', " ".join(["overlays/"+x for x in overlays]))
+}
+
+do_install:append() {
+    # Create overlays dir
+    install -d ${D}/boot/overlays
+
+    # Install all ADI + RPi overlays if present
+    if [ -d ${B}/arch/arm64/boot/dts/overlays ]; then
+        for dtbo in ${B}/arch/arm64/boot/dts/overlays/*.dtbo; do
+            install -m 0644 $dtbo ${D}/boot/overlays/
+        done
+    fi
+
+    # Copy all compiled overlays
+#    for dtbo in ${B}/arch/arm64/boot/dts/overlays/*.dtbo; do
+#        install -m 0644 $dtbo ${D}/boot/overlays/
+#    done
+
+
+	# Install the ADI kernel image
+#	install -m 0644 ${B}/arch/arm64/boot/Image ${D}/boot/
+
+    # Make sure DTB is deployed for image creation
+    install -m 0644 ${B}/arch/arm64/boot/dts/broadcom/bcm2711-rpi-4-b.dtb ${DEPLOY_DIR_IMAGE}/
+
+	install -m 0644 ${B}/arch/arm64/boot/dts/broadcom/bcm2711-rpi-4-b.dtb ${D}/boot/
+
+    # Install the correct kernel image
+#    install -m 0644 ${B}/Image-* ${D}/boot/
+
+    # Install kernel Image (the ADI kernel DTB alternative)
+#    install -m 0644 ${B}/Image-${PV} ${D}/boot/
+#
+
+    # Copy a valid DTB for Raspberry Pi
+#    install -m 0644 ${DEPLOY_DIR_IMAGE}/bcm2711-rpi-4-b.dtb ${D}/boot/
+
+###############################################################################################################
+    # Create systemd and init.d directories
+    install -d ${D}${sysconfdir}/systemd/system
+    install -d ${D}${sysconfdir}/init.d
+
+    # Create script to load all kernel modules
+    cat > ${D}${sysconfdir}/init.d/load-all-modules.sh <<'EOF'
+#!/bin/sh
+for modfile in /lib/modules/$(uname -r)/kernel/**/*.ko* /lib/modules/$(uname -r)/**/*.ko*; do
+    modname=$(basename "$modfile" | sed 's/\.ko.*$//')
+    modprobe "$modname" >/dev/null 2>&1
+done
+EOF
+
+    chmod 0755 ${D}${sysconfdir}/init.d/load-all-modules.sh
+
+    # Create systemd service to run the script at boot
+    cat > ${D}${sysconfdir}/systemd/system/load-all-modules.service <<EOF
+[Unit]
+Description=Load all kernel modules at boot
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=${sysconfdir}/init.d/load-all-modules.sh
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+}
+
+#######################################################################################################################
+
+# Make sure overlays are deployed
+#python () {
+#    import os
+#    overlay_dir = os.path.join(d.getVar('B'), 'arch/arm64/boot/dts/overlays')
+#    overlays = [f for f in os.listdir(overlay_dir) if f.endswith('.dtbo')]
+#    d.setVar('KERNEL_DEVICETREE', " ".join(["overlays/"+x for x in overlays]))
+#}
+
+# Tell Yocto which DTB to deploy
+#KERNEL_DEVICETREE = "Image-6.1.35-v8"
+#KERNEL_DEVICETREE = "bcm2711-rpi-4-b.dtb"
+#KERNEL_DEVICETREE = ""
+
+SYSTEMD_AUTO_ENABLE:append = " load-all-modules.service"
+SYSTEMD_SERVICE_${PN} += "load-all-modules.service"
+IMAGE_INSTALL:append = " kernel-modules"
+
+
+
+FILES:${KERNEL_PACKAGE_NAME}-base += "/boot/overlays/*.dtbo"
+

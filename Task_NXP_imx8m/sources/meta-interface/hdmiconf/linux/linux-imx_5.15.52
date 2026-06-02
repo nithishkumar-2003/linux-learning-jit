@@ -1,0 +1,8 @@
+FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
+
+# Add your DTS fragment
+SRC_URI += "file://imx8mm-evk.dtsi"
+
+# Add to device trees
+KERNEL_DEVICETREE += "imx8mm-evk.dtsi"
+
